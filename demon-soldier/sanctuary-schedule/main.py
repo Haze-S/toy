@@ -51,8 +51,12 @@ class MyBot(commands.Bot):
             channel = self.get_channel(c_id)
             if channel:
                 # Poll 객체는 채널마다 새로 생성해야 함
+                if c_id == CHANNEL_ID_1:
+                    question = f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str}, 시간 : 21:30)"
+                else:
+                    question = f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str})"
                 poll = discord.Poll(
-                    question=f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str}, 시간 : 21:30)",
+                    question=question,
                     duration=timedelta(days=3),
                     multiple=True
                 )
