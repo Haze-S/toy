@@ -47,6 +47,19 @@ class MyBot(commands.Bot):
         wednesday = now + timedelta(days=days_until_wed)
         wednesday_str = wednesday.strftime("%m/%d")
 
+        # 수요일 밤 8시(KST) 종료 시각 계산
+        poll_end = datetime(
+            year=wednesday.year,
+            month=wednesday.month,
+            day=wednesday.day,
+            hour=20, minute=0, second=0, tzinfo=KST
+        )
+        # 현재 시각(now)부터 종료 시각까지 남은 시간
+        duration = poll_end - now
+        # 만약 이미 종료 시간이 지났으면 최소 1분 유지
+        if duration.total_seconds() <= 0:
+            duration = timedelta(minutes=1)
+
         for c_id in target_channels:
             channel = self.get_channel(c_id)
             if channel:
@@ -57,14 +70,14 @@ class MyBot(commands.Bot):
                     question = f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str})"
                 poll = discord.Poll(
                     question=question,
-                    duration=timedelta(days=3),
+                    duration=duration,
                     multiple=True
                 )
-                
+
                 days = ["수", "목", "금", "토", "일", "월", "화"]
                 for day in days:
                     poll.add_answer(text=f"{day}요일")
-                
+
                 await channel.send("@everyone 🔔 이번 주 일정을 체크해 주세요!", poll=poll)
                 print(f"🚀 채널({c_id})에 투표 전송 완료")
 
