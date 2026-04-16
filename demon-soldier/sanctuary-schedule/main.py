@@ -9,8 +9,13 @@ load_dotenv()
 
 # 1. 설정 부분
 TOKEN = os.getenv('TOKEN')
-CHANNEL_ID_1 = int(os.getenv('CHANNEL_ID_1'))
-CHANNEL_ID_2 = int(os.getenv('CHANNEL_ID_2'))
+RUDRA_CHANNEL_ID_1 = int(os.getenv('RUDRA_CHANNEL_ID_1'))
+RUDRA_CHANNEL_ID_2 = int(os.getenv('RUDRA_CHANNEL_ID_2'))
+CHIMSIK_CHANNEL_ID_1 = int(os.getenv('CHIMSIK_CHANNEL_ID_1'))
+CHIMSIK_CHANNEL_ID_2 = int(os.getenv('CHIMSIK_CHANNEL_ID_2'))
+
+# 고정 시간(평일 23:30 / 주말 22:00)으로 진행되는 채널
+FIXED_TIME_CHANNELS = {RUDRA_CHANNEL_ID_2, CHIMSIK_CHANNEL_ID_1}
 
 # 한국 시간(KST) 설정을 위한 오프셋 (UTC+9)
 KST = timezone(timedelta(hours=9))
@@ -40,7 +45,7 @@ class MyBot(commands.Bot):
 
     async def send_scheduled_poll(self):
         now = datetime.now(KST)
-        target_channels = [CHANNEL_ID_1, CHANNEL_ID_2]
+        target_channels = [RUDRA_CHANNEL_ID_1, RUDRA_CHANNEL_ID_2, CHIMSIK_CHANNEL_ID_1, CHIMSIK_CHANNEL_ID_2]
 
         # 이번 주 수요일 날짜 계산
         days_until_wed = (2 - now.weekday()) % 7
@@ -64,10 +69,16 @@ class MyBot(commands.Bot):
             channel = self.get_channel(c_id)
             if channel:
                 # Poll 객체는 채널마다 새로 생성해야 함
-                if c_id == CHANNEL_ID_1:
-                    question = f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str}, 시간 : 21:30)"
+                if c_id in FIXED_TIME_CHANNELS:
+                    question = (
+                        f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str})\n"
+                        f"**고정 시간 : 평일 23:30, 주말 22:00**"
+                    )
                 else:
-                    question = f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str})"
+                    question = (
+                        f"📅 점검 후 성역 참여 가능 요일 투표 (점검일: {wednesday_str})\n"
+                        f"**고정 시간 : 평일 21:30, 주말 협의**"
+                    )
                 poll = discord.Poll(
                     question=question,
                     duration=duration,
@@ -78,7 +89,7 @@ class MyBot(commands.Bot):
                 for day in days:
                     poll.add_answer(text=f"{day}요일")
 
-                await channel.send("@everyone 🔔 이번 주 일정을 체크해 주세요!", poll=poll)
+                await channel.send("@here 🔔 이번 주 일정을 체크해 주세요!", poll=poll)
                 print(f"🚀 채널({c_id})에 투표 전송 완료")
 
     @weekly_poll_task.before_loop
@@ -89,11 +100,11 @@ class MyBot(commands.Bot):
 bot = MyBot()
 
 # [테스트 명령어] 채팅창에 !테스트 입력 시 즉시 투표 발송
-# @bot.command(name="테스트")
-# async def test_poll(ctx):
-#     print("📢 테스트 명령어가 감지되었습니다.")
-#     await bot.send_scheduled_poll()
-#     await ctx.send("✅ 설정된 모든 채널에 테스트 투표를 발송했습니다.")
+@bot.command(name="테스트")
+async def test_poll(ctx):
+    print("📢 테스트 명령어가 감지되었습니다.")
+    await bot.send_scheduled_poll()
+    await ctx.send("✅ 설정된 모든 채널에 테스트 투표를 발송했습니다.")
 
 # 봇 실행
 bot.run(TOKEN)
